@@ -154,7 +154,7 @@ CMAKE_INSTALL_MANDIR:PATH=
 CMAKE_INSTALL_OLDINCLUDEDIR:PATH=/usr/include
 
 //Install path prefix, prepended onto install directories.
-CMAKE_INSTALL_PREFIX:PATH=C:/Program Files (x86)/x_template
+CMAKE_INSTALL_PREFIX:PATH=C:/Program Files (x86)/Guia1_ej4
 
 //Run-time variable data (LOCALSTATEDIR/run)
 CMAKE_INSTALL_RUNSTATEDIR:PATH=
@@ -373,15 +373,6 @@ mbedx509_LIB_DEPENDS:STATIC=general;__idf_cxx;general;__idf_newlib;general;__idf
 //Dependencies for the target
 p256m_LIB_DEPENDS:STATIC=general;__idf_cxx;general;__idf_newlib;general;__idf_freertos;general;__idf_esp_hw_support;general;__idf_heap;general;__idf_log;general;__idf_soc;general;__idf_hal;general;__idf_esp_rom;general;__idf_esp_common;general;__idf_esp_system;general;__idf_riscv;
 
-//Value Computed by CMake
-x_template_BINARY_DIR:STATIC=C:/Repositorios/RojasGarrido-1C-2024/firmware/projects/Guia1_ej4/build
-
-//Value Computed by CMake
-x_template_IS_TOP_LEVEL:STATIC=ON
-
-//Value Computed by CMake
-x_template_SOURCE_DIR:STATIC=C:/Repositorios/RojasGarrido-1C-2024/firmware/projects/Guia1_ej4
-
 
 ########################
 # INTERNAL cache entries
@@ -588,7 +579,7 @@ HAVE_TIME_T_SIZE:INTERNAL=TRUE
 //CHECK_TYPE_SIZE: sizeof(time_t)
 TIME_T_SIZE:INTERNAL=8
 //CMAKE_INSTALL_PREFIX during last run
-_GNUInstallDirs_LAST_CMAKE_INSTALL_PREFIX:INTERNAL=C:/Program Files (x86)/x_template
+_GNUInstallDirs_LAST_CMAKE_INSTALL_PREFIX:INTERNAL=C:/Program Files (x86)/Guia1_ej4
 _Python3_EXECUTABLE:INTERNAL=C:/Users/Jesse/.espressif/python_env/idf5.1_py3.11_env/Scripts/python.exe
 //Python3 Properties
 _Python3_INTERPRETER_PROPERTIES:INTERNAL=Python;3;11;2;32;;;C:\Users\Jesse\.espressif\tools\idf-python\3.11.2\Lib;C:\Users\Jesse\.espressif\tools\idf-python\3.11.2\Lib;C:\Users\Jesse\.espressif\python_env\idf5.1_py3.11_env\Lib\site-packages;C:\Users\Jesse\.espressif\python_env\idf5.1_py3.11_env\Lib\site-packages

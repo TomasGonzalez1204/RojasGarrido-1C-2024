@@ -26,10 +26,14 @@
 /*==================[inclusions]=============================================*/
 #include <stdio.h>
 #include <stdint.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "led.h"
 /*==================[macros and definitions]=================================*/
 uint8_t CONT;
 uint8_t vect[3];
 uint8_t i;
+#define CONFIG_BLINK_PERIOD 1000
 /*==================[internal data definition]===============================*/
 
 /*==================[internal functions declaration]=========================*/
@@ -45,12 +49,20 @@ int8_t  convertToBcdArray (uint32_t data, uint8_t digits, uint8_t * bcd_number)
 /*==================[external functions definition]==========================*/
 void app_main(void){
 	
-	convertToBcdArray (138,3,vect[3]);
+	convertToBcdArray (138,3,vect);
 	for (i=0;i<3;i++)
 	{
 		printf("nº: %d en posición %d\n", vect[i], i);
 	}
 
+	 while(true){
+        printf("LED ON\n");
+       // LedOn(LED_1);
+        vTaskDelay(CONFIG_BLINK_PERIOD / portTICK_PERIOD_MS);
+        printf("LED OFF\n");
+       // LedOff(LED_1);
+        vTaskDelay(CONFIG_BLINK_PERIOD / portTICK_PERIOD_MS);
+    }
 	
 }
 /*==================[end of file]============================================*/

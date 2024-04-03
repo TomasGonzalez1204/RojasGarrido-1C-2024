@@ -13,6 +13,9 @@
             "path": "projects/2_blinking_tasks"
         },
         {
+            "path": "projects/3_blinking_timer"
+        },
+        {
             "path": "./projects/x_template"
         },
         {
@@ -20,6 +23,9 @@
         },
         {
             "path": "projects/Guia1_ej4"
+        },
+        {
+            "path": "projects/Guia1_ej5"
         }
     ],
     "settings": {
