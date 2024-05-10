@@ -1,145 +1,136 @@
-/*! @mainpage Template
- *
- * @section genDesc General Description
- *
- * This section describes how the program works.
- *
- * <a href="https://drive.google.com/...">Operation Example</a>
- *
- * @section hardConn Hardware Connection
- *
- * |    Peripheral  |   ESP32   	|
- * |:--------------:|:--------------|
- * | 	PIN_X	 	| 	GPIO_X		|
- *
- *
- * @section changelog Changelog
- *
- * |   Date	    | Description                                    |
- * |:----------:|:-----------------------------------------------|
- * | 12/09/2023 | Document creation		                         |
- *
- * @author Jessenia J. Rojas Garrido (jrojasgarrido@ingenieria.uner.edu.ar)
- *
- */
-
-/*==================[inclusions]=============================================*/
 #include <stdio.h>
 #include <stdint.h>
-#include <led.h>
+#include <stdbool.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "timer_mcu.h"
+#include "led.h"
 #include <lcditse0803.h>
 #include <hc_sr04.h>
 #include <switch.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#include <freertos/queue.h>
-#include <freertos/timers.h>
-//#include <gpio_mcu.h>
-
+#include <uart_mcu.h>
 /*==================[macros and definitions]=================================*/
+#define CONFIG_BLINK_PERIOD_LED_1_US 1000000
+#define CONFIG_BLINK_PERIOD_LED_2_US 1300000
+/*==================[internal data definition]===============================*/
+TaskHandle_t led1_task_handle = NULL;
+TaskHandle_t led2_task_handle = NULL;
+/*==================[internal functions declaration]=========================*/
+uint8_t Dist = 0;
+uint64_t teclas;
+bool Encendido=1, Hold=1;
+uint8_t X;
+uint8_t CONFIG_BLINK_PERIOD_MEDICION = 1000;
+uint8_t CONFIG_BLINK_PERIOD_TECLAS = 100;
+TaskHandle_t medicion_task_handle=NULL;
+TaskHandle_t MostrarLed_task_handle=NULL;
 #define ECHO GPIO_3
 #define TRIGGER GPIO_2
+#define TIME_PERIOD 1000000
 
-#define SWITCH_1_BIT 0
-#define SWITCH_2_BIT 1
+void prenderLeds(void)
+{
+	Dist=HcSr04ReadDistanceInCentimeters();
+	if (Dist < 10){
+		LedsOffAll();
+	} else if (Dist > 10 && Dist < 20){
+		LedOn(LED_1);
+	} else if (Dist > 20 && Dist < 30){
+		LedOn(LED_2);
+		LedOn(LED_1);
+	} else if(Dist > 30){
+		LedOn(LED_3);
+		LedOn(LED_2);
+		LedOn(LED_1);
+	}
+	
+}
+void FuncionTecla1(void)
+{
+	Encendido=!Encendido;
 
-#define SWITCH_1_MASK (1 << SWITCH_1_BIT)
-#define SWITCH_2_MASK (1 << SWITCH_2_BIT)
-
-#define TIMER_PERIOD pdMS_TO_TICKS(1000)
-
-/*==================[internal data definition]===============================*/
-uint8_t Dist = 0;
-bool Encendido = false, Hold = false;
-uint8_t X;
-
-TimerHandle_t timer;
-QueueHandle_t ColaSwitches;
-TaskHandle_t MostrarLed_task_handle=NULL;
-TaskHandle_t MostrarDisplay_task_handle=NULL;
-TaskHandle_t FuncionTeclas_task_handle=NULL;
-TaskHandle_t llamadaTimer_task_handle=NULL;
-TaskHandle_t Interruptor_task_handle=NULL;
-/*==================[internal functions declaration]=========================*/
-void MostrarConLed(void);
-void MostrarConDisplay(void);
-void FuncionTeclas(void);
-void llamadaTimer(TimerHandle_t pxTimer);
-void controladorInterrupciones(void);
-/*==================[internal functions definition]=========================*/
-void MostrarConLed(void) { //igual a ejercicio 1
-    Dist = HcSr04ReadDistanceInCentimeters();
-
-    if (Dist < 10) {
-        LedsOffAll();
-    } else if (Dist >= 10 && Dist < 20) {
-        LedOn(1);
-    } else if (Dist >= 20 && Dist < 30) {
-        LedOn(2);
-        LedOn(1);
-    } else if (Dist >= 30 && Dist < 40) {
-        LedOn(3);
-        LedOn(2);
-        LedOn(1);
-    }
 }
 
-void MostrarConDisplay(void) {//igual a ejercicio 1
-    LcdItsE0803Write(Dist);
+void FuncionTecla2(void)
+{
+	Hold=!Hold;
+	}
+void Mostrar(void *pvParameter)
+{
+	while (1)
+	{
+		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+		if(Encendido==1)
+		{
+				prenderLeds();
+				if (Hold==1)
+				{
+					LcdItsE0803Write(Dist);
+					UartSendString(UART_PC, (char*) UartItoa(Dist, 10));
+					UartSendString(UART_PC, " cm\r\n");
+				}
+		}
+		else 
+			{
+			LedsOffAll();
+			LcdItsE0803Off();
+			}
+		//vTaskDelay(CONFIG_BLINK_PERIOD_TECLAS / portTICK_PERIOD_MS);
+	}
+}
+/**
+ * @brief Función invocada en la interrupción del timer A
+ */
+void FuncTimerA(void* param){
+    xTaskNotifyGive(led1_task_handle);    /* Envía una notificación a la tarea asociada al LED_1 */
 }
 
-void FuncionTeclas(void) {
-    BaseType_t altaPrioridad = pdFALSE;
-    uint32_t switches;
-
-    while (1) {
-        if (xQueueReceiveFromISR(ColaSwitches, &switches, &altaPrioridad) == pdPASS) {
-            if (switches & SWITCH_1_MASK) {
-                Encendido = !Encendido;
-            }
-            if (switches & SWITCH_2_MASK) {
-                Hold = !Hold;
-            }
-        }
-
-        portYIELD_FROM_ISR(altaPrioridad);
-    }
-}
-
-void llamadaTimer(TimerHandle_t pxTimer) {
-    if (Encendido) {
-        HcSr04ReadDistanceInCentimeters();
-    } else {
-        LcdItsE0803Off();
-        LedsOffAll();
-    }
-
-    if (Hold) {
-        MostrarConDisplay();
-    } else {
-        LcdItsE0803Write(X);
-        LedsOffAll();
-    }
-}
-
-void Interruptor(void) {
-    BaseType_t altaPrioridad = pdFALSE;
-    uint32_t switches = SwitchesRead();
-
-    xQueueSendFromISR(ColaSwitches, &switches, &altaPrioridad);
-
-    portYIELD_FROM_ISR(altaPrioridad);
+void FuncionSerie (void* param){
+	uint8_t dato;
+	UartReadByte(UART_PC, &dato);
+		if (dato=='O'){
+			FuncionTecla1();
+		}
+		else if (dato=='H'){
+			FuncionTecla2();
+		}
 }
 
 /*==================[external functions definition]==========================*/
-void app_main(void) {
+void app_main(void){
+
     LedsInit();
-    HcSr04Init(ECHO, TRIGGER);
-    SwitchesInit();
-    LcdItsE0803Init();
-        xTaskCreate(&MostrarConLed, "TAREA LEDS", 512, NULL, 5, &MostrarLed_task_handle);
-        xTaskCreate(&MostrarConDisplay, "TAREA DISPLAY", 512, NULL, 5, &MostrarDisplay_task_handle);
-        xTaskCreate(&FuncionTeclas, "FUNCION TECLAS", 512, NULL, 5, &FuncionTeclas_task_handle);
-        xTaskCreate(&llamadaTimer, "llamada Timer", 512, NULL, 5, &llamadaTimer_task_handle);
-        xTaskCreate(&Interruptor, "llamada Timer", 512, NULL, 5, &Interruptor_task_handle);
-    }
+	HcSr04Init(ECHO,TRIGGER);
+	SwitchesInit();
+	LcdItsE0803Init();
+    /* Inicialización de timers */
+    timer_config_t timer_led_1 = {
+        .timer = TIMER_A,
+        .period = CONFIG_BLINK_PERIOD_LED_1_US,
+        .func_p = FuncTimerA,
+        .param_p = NULL
+    };
+	serial_config_t serial_mediciones = {
+        .port = UART_PC,
+        .baud_rate = 9600,
+        .func_p = FuncionSerie,
+        .param_p = NULL
+    };
+    TimerInit(&timer_led_1);
+	UartInit(&serial_mediciones);
+    /*timer_config_t timer_led_2 = {
+        .timer = TIMER_B,
+        .period = CONFIG_BLINK_PERIOD_LED_2_US,
+        .func_p = FuncTimerB,
+        .param_p = NULL
+    };
+    TimerInit(&timer_led_2);*/
+    SwitchActivInt(SWITCH_1, FuncionTecla1, NULL);
+	SwitchActivInt(SWITCH_2, FuncionTecla2, NULL);
+    /* Creación de tareas */
+    xTaskCreate(&Mostrar, "LED_1", 512, NULL, 5, &led1_task_handle);
+    //xTaskCreate(&Led2Task, "LED_2", 512, NULL, 5, &led2_task_handle);
+    /* Inicialización del conteo de timers */
+    TimerStart(timer_led_1.timer);
+    //TimerStart(timer_led_2.timer);
+}
