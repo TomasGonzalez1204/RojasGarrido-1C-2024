@@ -17,7 +17,7 @@
  *
  * |   Date	    | Description                                    |
  * |:----------:|:-----------------------------------------------|
- * | 12/09/2023 | Document creation		                         |
+ * | 10/05/2024 | Document creation		                         |
  *
  * @author Jessenia J. Rojas Garrido (jrojasgarrido@ingenieria.uner.edu.ar)
  *
@@ -35,12 +35,10 @@
 #include <hc_sr04.h>
 #include <switch.h>
 /*==================[macros and definitions]=================================*/
-#define CONFIG_BLINK_PERIOD_LED_1_US 1000000
-#define CONFIG_BLINK_PERIOD_LED_2_US 1300000
+#define CONFIG_BLINK_PERIOD_TIMER 1000000
+#define ECHO GPIO_3
+#define TRIGGER GPIO_2
 /*==================[internal data definition]===============================*/
-TaskHandle_t led1_task_handle = NULL;
-TaskHandle_t led2_task_handle = NULL;
-/*==================[internal functions declaration]=========================*/
 uint8_t Dist = 0;
 uint64_t teclas;
 bool Encendido=1, Hold=1;
@@ -49,37 +47,43 @@ uint8_t CONFIG_BLINK_PERIOD_MEDICION = 1000;
 uint8_t CONFIG_BLINK_PERIOD_TECLAS = 100;
 TaskHandle_t medicion_task_handle=NULL;
 TaskHandle_t MostrarLed_task_handle=NULL;
-#define ECHO GPIO_3
-#define TRIGGER GPIO_2
-#define TIME_PERIOD 1000000
+/*==================[internal functions declaration]=========================*/
 
+//funcion para prender Leds segun la distancia
 void prenderLeds(void)
 {
 	Dist=HcSr04ReadDistanceInCentimeters();
-	if (Dist < 10){
+	if (Dist < 10)
+	{
 		LedsOffAll();
-	} else if (Dist > 10 && Dist < 20){
+	} else if (Dist > 10 && Dist < 20)
+	{
 		LedOn(LED_1);
-	} else if (Dist > 20 && Dist < 30){
+	} else if (Dist > 20 && Dist < 30)
+	{
 		LedOn(LED_2);
 		LedOn(LED_1);
-	} else if(Dist > 30){
+	} else if(Dist > 30)
+	{
 		LedOn(LED_3);
 		LedOn(LED_2);
 		LedOn(LED_1);
-	}
-	
+	}	
 }
+
+//cambia el estado de la bandera de encendido
 void FuncionTecla1(void)
 {
 	Encendido=!Encendido;
-
 }
 
+//cambia el estado de la bandera de Hold
 void FuncionTecla2(void)
 {
 	Hold=!Hold;
-	}
+}
+
+//tarea para mostrar por pantalla segun Encendido y segun tecla hold, con timer e interrupciones
 void Mostrar(void *pvParameter)
 {
 	while (1)
@@ -98,14 +102,13 @@ void Mostrar(void *pvParameter)
 			LedsOffAll();
 			LcdItsE0803Off();
 			}
-		//vTaskDelay(CONFIG_BLINK_PERIOD_TECLAS / portTICK_PERIOD_MS);
 	}
 }
-/**
- * @brief Función invocada en la interrupción del timer A
- */
-void FuncTimerA(void* param){
-    xTaskNotifyGive(led1_task_handle);    /* Envía una notificación a la tarea asociada al LED_1 */
+
+// Tarea Timer
+void FuncTimer(void* param)
+{
+    xTaskNotifyGive(MostrarLed_task_handle);   
 }
 
 /*==================[external functions definition]==========================*/
@@ -115,27 +118,19 @@ void app_main(void){
 	HcSr04Init(ECHO,TRIGGER);
 	SwitchesInit();
 	LcdItsE0803Init();
-    /* Inicialización de timers */
-    timer_config_t timer_led_1 = {
+	timer_config_t timer_mediciones = 
+	{
         .timer = TIMER_A,
-        .period = CONFIG_BLINK_PERIOD_LED_1_US,
-        .func_p = FuncTimerA,
+        .period = CONFIG_BLINK_PERIOD_TIMER,
+        .func_p = FuncTimer,
         .param_p = NULL
     };
-    TimerInit(&timer_led_1);
-    /*timer_config_t timer_led_2 = {
-        .timer = TIMER_B,
-        .period = CONFIG_BLINK_PERIOD_LED_2_US,
-        .func_p = FuncTimerB,
-        .param_p = NULL
-    };
-    TimerInit(&timer_led_2);*/
+    TimerInit(&timer_mediciones);
+
     SwitchActivInt(SWITCH_1, FuncionTecla1, NULL);
 	SwitchActivInt(SWITCH_2, FuncionTecla2, NULL);
-    /* Creación de tareas */
-    xTaskCreate(&Mostrar, "LED_1", 512, NULL, 5, &led1_task_handle);
-    //xTaskCreate(&Led2Task, "LED_2", 512, NULL, 5, &led2_task_handle);
-    /* Inicialización del conteo de timers */
-    TimerStart(timer_led_1.timer);
-    //TimerStart(timer_led_2.timer);
+
+    xTaskCreate(&Mostrar, "LED_1", 512, NULL, 5, &MostrarLed_task_handle);
+
+    TimerStart(timer_mediciones.timer);
 }
