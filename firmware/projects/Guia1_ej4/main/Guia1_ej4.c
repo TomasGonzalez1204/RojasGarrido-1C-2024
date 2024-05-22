@@ -36,6 +36,7 @@ uint8_t CONT;
 uint8_t vect[3];
 uint8_t i;
 #define CONFIG_BLINK_PERIOD 1000
+#define N_DIGITOS 3
 typedef struct
 {
 	gpio_t pin;			/*!< GPIO pin number */
@@ -53,16 +54,16 @@ int8_t  convertToBcdArray (uint32_t data, uint8_t digits, uint8_t * bcd_number)
 	return 1;
 }
 
-	void BCDtoGPIO(gpioConf_t* array,uint8_t digito)
+void BCDtoGPIO(gpioConf_t* array,uint8_t digito)
+{
+	uint8_t mascara=1;
+	for (uint8_t i = 0; i < 4; i++)
 	{
-		uint8_t mascara=1;
-		for (uint8_t i = 0; i < 4; i++)
-		{
-			GPIOInit(arreglo[i].pin, arreglo[i].dir);
-		}
-		for (uint8_t j = 0; j < 4; j++)
-		{
-			if ((mascara&digito) == 0)
+		GPIOInit(arreglo[i].pin, arreglo[i].dir);
+	}
+	for (uint8_t j = 0; j < 4; j++)
+	{
+		if ((mascara&digito) == 0)
 			{
 				GPIOOff(array[j].pin);
 				//printf("SE PONE EN BAJO PIN ",array[j].pin);
@@ -72,17 +73,51 @@ int8_t  convertToBcdArray (uint32_t data, uint8_t digits, uint8_t * bcd_number)
 				//printf("SE PONE EN ALTO PIN ",array[j].pin);
 			}
 		mascara = mascara << 1;	
-		}
 	}
+}
 
+void displayLeds(uint32_t data, uint digitos, gpioConf_t *vectorGPIO, gpioConf_t *vectorGPIO_map)
+{
+	uint8_t arreglo[digitos];
+	convertToBcdArray (data, digitos, arreglo);
+
+	for (int i=0; i<N_DIGITOS; i++){ 
+
+		BCDtoGPIO(arreglo[i], digitos);
+
+		GPIOOn(vectorGPIO_map[i].pin);
+		GPIOOff(vectorGPIO_map[i].pin);
+		
+	}
+}
 	
 /*==================[external functions definition]==========================*/
 void app_main(void)
 {
-	BCDtoGPIO(arreglo,2);
+	/*BCDtoGPIO(arreglo,2);
 	convertToBcdArray (138,3,vect);
 	for (i=0;i<3;i++){
-		printf("nº: %d en posición %d\n", vect[i], i);
-	}
+		printf("nº: %d en posición %d\n", vect[i], i); ejercicio 3 y 4
+	}*/
+	
+
+	uint32_t numero = 125;
+	uint digitos = 3;
+	
+	gpioConf_t vectorGPIOs[4] = {{GPIO_20,GPIO_OUTPUT},{GPIO_21,GPIO_OUTPUT},{GPIO_22,GPIO_OUTPUT},{GPIO_23,GPIO_OUTPUT}};
+	//for ()
+	GPIOInit(vectorGPIOs[0].pin, vectorGPIOs[0].dir);
+	GPIOInit(vectorGPIOs[1].pin, vectorGPIOs[1].dir);
+	GPIOInit(vectorGPIOs[2].pin, vectorGPIOs[2].dir);
+	GPIOInit(vectorGPIOs[3].pin, vectorGPIOs[3].dir);
+
+	gpioConf_t vectorGPIO_mapeo[3] = {{GPIO_19,GPIO_OUTPUT},{GPIO_18,GPIO_OUTPUT},{GPIO_9,GPIO_OUTPUT}};
+	GPIOInit(vectorGPIO_mapeo[0].pin, vectorGPIO_mapeo[0].dir);
+	GPIOInit(vectorGPIO_mapeo[1].pin, vectorGPIO_mapeo[1].dir);
+	GPIOInit(vectorGPIO_mapeo[2].pin, vectorGPIO_mapeo[2].dir);
+	
+	displayLeds(numero, digitos, vectorGPIOs, vectorGPIO_mapeo);
+	
 }
 /*==================[end of file]============================================*/
+
