@@ -75,16 +75,6 @@ void AdquirirDato(void *param)
 	}
 }
 
-void FuncTimer(void* param)
-{
-    xTaskNotifyGive(AdquirirDato_task_handle);   
-}
-
-void FuncTimerECG(void* param)
-{
-    xTaskNotifyGive(ConvertirSenial_task_handle);   
-}
-
 void ConvertirSenial(void *param)
 {
 	uint8_t i=0;
@@ -99,6 +89,18 @@ void ConvertirSenial(void *param)
 		}
 	}
 }
+
+void FuncTimer(void* param)
+{
+    xTaskNotifyGive(AdquirirDato_task_handle);   
+}
+
+void FuncTimerECG(void* param)
+{
+    xTaskNotifyGive(ConvertirSenial_task_handle);   
+}
+
+
 
 /*==================[external functions definition]==========================*/
 void app_main(void)
