@@ -39,26 +39,29 @@ typedef struct
 }  gpioConf_t;
 /*==================[internal data definition]===============================*/
 gpioConf_t arreglo [3] = {{GPIO_20,GPIO_OUTPUT},{GPIO_21,GPIO_OUTPUT},{GPIO_22,GPIO_OUTPUT}};// (agua, PHA,PHB)
-uint8_t entrada=0,pH=0;
-#define CONFIG_BLINK_PERIOD 3000000;
+uint8_t entrada=0,pH=0,banderaPHA=0,banderaPHB;
+#define CONFIG_BLINK_PERIOD_MEDICION 3000000;
 /*==================[internal functions declaration]=========================*/
-void EncenderBomba(gpioConf_t* Bomba)
+void EncenderBomba(gpioConf_t* Bomba,uint8_t Bandera)
 {
 	while(1){
-		GPIOOn(Bomba.pin);
+		if(Bandera==1) 
+			GPIOOn(Bomba);
+		else GPIOOff (Bomba);
+	vTaskDelay (CONFIG_BLINK_PERIOD/portTICK_PERIOD_MS);
 	}
-	vTaskDelay(CONFIG_BLINK_PERIOD/ portTICK_PERIOD_MS);
 }
 
 void bombaPH (void *param)
 {
 	while(1)
-{
-	pH=entrada*(3/14);
-	if(pH<14 && pH>6.7)
-		EncenderBomba(arreglo[1]);
-	else if
-}
+	{
+		pH=entrada*(3/14);
+		if(pH<14 && pH>6.7){
+			EncenderBomba(arreglo[1],banderaPHA);}
+		else if(pH<6 && pH>0){
+			EncenderBomba(arreglo[2],banderaPHB);}
+	}
 }
 /*==================[external functions definition]==========================*/
 void app_main(void){
