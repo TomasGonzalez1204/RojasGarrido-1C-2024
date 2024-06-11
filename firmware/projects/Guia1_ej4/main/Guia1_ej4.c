@@ -105,7 +105,7 @@ void app_main(void)
 	uint digitos = 3;
 	
 	gpioConf_t vectorGPIOs[4] = {{GPIO_20,GPIO_OUTPUT},{GPIO_21,GPIO_OUTPUT},{GPIO_22,GPIO_OUTPUT},{GPIO_23,GPIO_OUTPUT}};
-	//for ()
+	
 	GPIOInit(vectorGPIOs[0].pin, vectorGPIOs[0].dir);
 	GPIOInit(vectorGPIOs[1].pin, vectorGPIOs[1].dir);
 	GPIOInit(vectorGPIOs[2].pin, vectorGPIOs[2].dir);

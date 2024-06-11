@@ -56,12 +56,22 @@ uint8_t sine_wave[BUFFER_SIZE] = {
     72, 83, 94, 106, 119, 131, 144, 157};
 
 uint8_t periodo, volumen;
-uint8_t audiometria[7][2];
+uint16_t frecuencia[7] = { 
+    125, 250, 500, 1000,
+    2000, 4000, 8000
+};
+uint8_t volumen_audiometria[7];
+int punto = 0;
 timer_config_t timer_Senial;
 /*==================[internal functions declaration]=========================*/
-
+void GuardarMedicion()
+{
+    volumen_audiometria[punto] = volumen;
+    punto++;
+}
 void ModificarPeriodo(void)
 {
+    GuardarMedicion();
     periodo = periodo / 2;
 
     volumen = 0.1; // reinicia el volumen en cada frecuencia
@@ -109,8 +119,7 @@ void app_main(void)
 {
     ble_config_t ble_configuration = {
         "ESP_EDU_1",
-        NULL
-    };
+        NULL};
 
     BleInit(&ble_configuration);
 
