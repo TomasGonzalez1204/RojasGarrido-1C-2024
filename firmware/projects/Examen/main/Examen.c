@@ -40,7 +40,8 @@ typedef struct
 
 /*==================[internal data definition]===============================*/
 gpioConf_t arreglo[3] = {{GPIO_20, GPIO_OUTPUT}, {GPIO_21, GPIO_OUTPUT}, {GPIO_22, GPIO_OUTPUT}}; // (agua, PHA,PHB)
-uint8_t pH = 0, banderaAgua, banderaPHA = 0, banderaPHB;
+double pH=0;
+uint8_t, banderaAgua, banderaPHA = 0, banderaPHB;
 TaskHandle_t bombaPH_task_handle, bombaAgua_task_handle, pantalla_task_handle;
 #define CONFIG_BLINK_PERIOD_MEDICION 3000000
 #define CONFIG_BLINK_PERIOD_LECTURA 5000000
@@ -48,7 +49,6 @@ TaskHandle_t bombaPH_task_handle, bombaAgua_task_handle, pantalla_task_handle;
 /*==================[internal functions declaration]=========================*/
 void EncenderBomba(gpioConf_t Bomba, uint8_t Bandera)
 {
-
 	if (Bandera == 1)
 	{
 		GPIOOn(Bomba.pin);
