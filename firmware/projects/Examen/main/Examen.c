@@ -30,7 +30,7 @@
 #include "freertos/task.h"
 #include "led.h"
 #include "gpio_mcu.h"
-
+#include "uart_mcu.h"
 /*==================[macros and definitions]=================================*/
 typedef struct
 {
@@ -46,17 +46,22 @@ TaskHandle_t bombaPH_task_handle, bombaAgua_task_handle;
 /*==================[internal functions declaration]=========================*/
 void EncenderBomba(gpioConf_t* Bomba,uint8_t Bandera)
 {
+	
 		if(Bandera==1) 
-			GPIOOn(Bomba.pin);
-		else GPIOOff (Bomba.pin);
+			{GPIOOn(Bomba->pin);}
+		else {GPIOOff (Bomba->pin);}
 }
 
-void bombaAgua (uint8_t entrada)
+void bombaAgua (uint8_t* BanderaAgua)
 {
-	EncenderBomba(arreglo[0],BanderaAgua)
+	while(1)
+	{
+		EncenderBomba(arreglo[0],BanderaAgua);
+		vTaskDelay (CONFIG_BLINK_PERIOD_MEDICION / portTICK_PERIOD_MS);
+	}
 }
 
-void bombaPH (uint8_t entrada)
+void bombaPH (uint8_t* entrada)
 {
 	while(1)
 	{
@@ -69,18 +74,37 @@ void bombaPH (uint8_t entrada)
 			{
 				EncenderBomba(arreglo[2].pin,banderaPHB);
 			}
-	vTaskDelay (CONFIG_BLINK_PERIOD_MEDICION / portTICK_PERIOD_MS);
+	vTaskDelay (CONFIG_BLINK_PERIOD_MEDICION/portTICK_PERIOD_MS);
 	}
 }
+
+void mandarAPantalla (void* vparameter){
+	if (banderaAgua==0){
+		UartSendString(UART_PC, const char *"pH: 6.5, humedad correcta");}
+	else {UartSendString(UART_PC, const char *"pH: 6.5, humedad incorrecta");}
+	if (banderaPHA==1){
+	UartSendString(UART_PC, const char *"Bomba de pHA encendida");}
+	else if {UartSendString(UART_PC, const char *"Bomba de pHB encendida");}
+			else{UartSendString(UART_PC, const char *"pH correcto");}
+	
+}
+
+
 /*==================[external functions definition]==========================*/
 void app_main(void){
 	//Bombas[0]: Agua, Bombas[1]: PHA; Bombas[2]: PHB
 	gpioConf_t Bombas[3] = {{GPIO_20,GPIO_OUTPUT},{GPIO_21,GPIO_OUTPUT},{GPIO_22,GPIO_OUTPUT}};
+	serial_config_t serial_salida = {
+        .port = UART_PC,
+        .baud_rate = 115200,
+        .func_p = NULL,
+        .param_p = NULL
+    };
     GPIOInit(Bombas[0].pin,Bombas[0].dir);
 	GPIOInit(Bombas[1].pin,Bombas[1].dir);
 	GPIOInit(Bombas[2].pin,Bombas[2].dir);
 	xTaskCreate(&bombaPH, "bombaPH", 512, NULL, 5, &bombaPH_task_handle);
 	xTaskCreate(&bombaAgua, "bombaAgua", 512, NULL, 5, &bombaAgua_task_handle);
-	
+
 }
 /*==================[end of file]============================================*/
