@@ -41,7 +41,7 @@ typedef struct
 /*==================[internal data definition]===============================*/
 gpioConf_t arreglo[3] = {{GPIO_20, GPIO_OUTPUT}, {GPIO_21, GPIO_OUTPUT}, {GPIO_22, GPIO_OUTPUT}}; // (agua, PHA,PHB)
 uint8_t pH = 0, banderaAgua, banderaPHA = 0, banderaPHB;
-TaskHandle_t bombaPH_task_handle, bombaAgua_task_handle;
+TaskHandle_t bombaPH_task_handle, bombaAgua_task_handle, pantalla_task_handle;
 #define CONFIG_BLINK_PERIOD_MEDICION 3000000
 #define CONFIG_BLINK_PERIOD_LECTURA 5000000
 
@@ -91,23 +91,23 @@ void mandarAPantalla(void *vparameter)
 	{
 		if (banderaAgua == 0)
 		{
-			UartSendString(UART_PC, const char * "pH: 6.5, humedad correcta");
+			UartSendString(UART_PC, "pH: 6.5, humedad correcta");
 		}
 		else
 		{
-			UartSendString(UART_PC, const char * "pH: 6.5, humedad incorrecta");
+			UartSendString(UART_PC, "humedad incorrecta");
 		}
 		if (banderaPHA == 1)
 		{
-			UartSendString(UART_PC, const char * "Bomba de pHA encendida");
+			UartSendString(UART_PC, "Bomba de pHA encendida");
 		}
-		else if (banderaPHB==1)
+		else if (banderaPHB == 1)
 		{
-			UartSendString(UART_PC, const char * "Bomba de pHB encendida");
+			UartSendString(UART_PC, "Bomba de pHB encendida");
 		}
 		else
 		{
-			UartSendString(UART_PC, const char * "pH correcto");
+			UartSendString(UART_PC, "pH correcto");
 		}
 		vTaskDelay(CONFIG_BLINK_PERIOD_LECTURA / portTICK_PERIOD_MS);
 	}
@@ -132,5 +132,6 @@ void app_main(void)
 	UartInit(&serial_salida);
 	xTaskCreate(&bombaPH, "bombaPH", 512, NULL, 5, &bombaPH_task_handle);
 	xTaskCreate(&bombaAgua, "bombaAgua", 512, NULL, 5, &bombaAgua_task_handle);
+	xTaskCreate(&mandarAPantalla, "Mostrar", 512, NULL, 5, &pantalla_task_handle);
 }
 /*==================[end of file]============================================*/
