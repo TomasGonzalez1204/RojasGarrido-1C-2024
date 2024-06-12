@@ -43,28 +43,27 @@
 #define LED_BT LED_1
 /*==================[internal data definition]===============================*/
 TaskHandle_t main_task_handle = NULL;
-TaskHandle_t AdquirirDato_task_handle = NULL;
+TaskHandle_t Modificar_task_handle = NULL;
 TaskHandle_t MandarSenial_task_handle = NULL;
-uint8_t sine_wave[BUFFER_SIZE] = {
+uint8_t sine_wave[64] = {
     128, 140, 153, 165, 177, 188, 199, 209,
     218, 226, 234, 240, 246, 251, 254, 255,
-    255, 253, 250, 245, 240, 233, 225, 215,
-    205, 194, 182, 170, 157, 144, 131, 119,
-    106, 94, 83, 72, 62, 53, 45, 38,
-    32, 27, 23, 20, 18, 17, 17, 18,
-    20, 23, 27, 32, 38, 45, 53, 62,
-    72, 83, 94, 106, 119, 131, 144, 157};
+    255, 254, 251, 246, 240, 234, 226, 218,
+    209, 199, 188, 177, 165, 153, 140, 128,
+    116, 103, 91, 79, 67, 56, 45, 35,
+    26, 18, 12, 7, 3, 1, 0, 0,
+    1, 3, 7, 12, 18, 26, 35, 45,
+    56, 67, 79, 91, 103, 116, 128};
 
-uint8_t periodo, volumen;
-uint16_t frecuencia[7] = { 
+uint8_t periodo = CONFIG_BLINK_PERIOD_TIMER_SENIAL, volumen = 1;
+uint16_t frecuencia[7] = {
     125, 250, 500, 1000,
-    2000, 4000, 8000
-};
+    2000, 4000, 8000};
 uint8_t volumen_audiometria[7];
-int punto = 0;
+uint8_t punto = 0;
 timer_config_t timer_Senial;
 /*==================[internal functions declaration]=========================*/
-void GuardarMedicion()
+void GuardarMedicion(void)
 {
     volumen_audiometria[punto] = volumen;
     punto++;
@@ -73,19 +72,21 @@ void ModificarPeriodo(void)
 {
     GuardarMedicion();
     periodo = periodo / 2;
-
-    volumen = 0.1; // reinicia el volumen en cada frecuencia
+    printf("%d\r", periodo);
+    // volumen = 0.1; // reinicia el volumen en cada frecuencia
 
     TimerStop(timer_Senial.timer);
     timer_Senial.period = periodo;
     TimerInit(&timer_Senial);
     TimerStart(timer_Senial.timer);
+
 } // frecuencia=(1/periodo)*1.000.000*64(muestras)
 
 void ModificarVolumen(void)
 {
     if (volumen < 1)
-        volumen = 0.1 + volumen;
+        volumen = 1 + volumen;
+    // printf ("%d\r",volumen);
 }
 
 void MandarSenial(void *param)
@@ -95,18 +96,39 @@ void MandarSenial(void *param)
     {
 
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
         i++;
         AnalogOutputWrite(volumen * sine_wave[i]);
         if (i == BUFFER_SIZE)
         {
             i = 0;
         }
+        // printf ("%d\r\n", sine_wave[i]);
     }
 }
 
-void FuncTimer(void *param)
+/*void FuncTimer(void *param)
 {
     xTaskNotifyGive(AdquirirDato_task_handle);
+}*/
+
+void Teclas(void *param)
+{
+    while (1)
+    {
+        uint8_t teclas;
+        teclas = SwitchesRead();
+        switch (teclas)
+        {
+        case SWITCH_1:
+            ModificarPeriodo();
+            break;
+        case SWITCH_2:
+            ModificarVolumen();
+            break;
+        }
+        vTaskDelay(CONFIG_BLINK_PERIOD_TIMER_SENIAL / portTICK_PERIOD_MS);
+    }
 }
 
 void FuncTimerSenial(void *param)
@@ -121,13 +143,13 @@ void app_main(void)
         "ESP_EDU_1",
         NULL};
 
-    BleInit(&ble_configuration);
+    /*BleInit(&ble_configuration);*/
 
-    timer_config_t timer_medicion = {
+    /*timer_config_t timer_medicion = {
         .timer = TIMER_A,
         .period = CONFIG_BLINK_PERIOD_TIMER,
         .func_p = FuncTimer,
-        .param_p = NULL};
+        .param_p = NULL};*/
 
     periodo = CONFIG_BLINK_PERIOD_TIMER_SENIAL;
 
@@ -136,23 +158,19 @@ void app_main(void)
     timer_Senial.func_p = FuncTimerSenial,
     timer_Senial.param_p = NULL;
 
-    analog_input_config_t SenialSalida = {
-        .input = CH1,
-        .mode = ADC_SINGLE,
-        .func_p = NULL,
-        .param_p = NULL,
-        .sample_frec = NULL};
-
-    TimerInit(&timer_medicion);
+    /*TimerInit(&timer_medicion);*/
     TimerInit(&timer_Senial);
-    AnalogInputInit(&SenialSalida);
+
     AnalogOutputInit();
+    SwitchesInit();
 
-    SwitchActivInt(SWITCH_1, ModificarPeriodo, NULL);
-    SwitchActivInt(SWITCH_2, ModificarVolumen, NULL);
+    // SwitchActivInt(SWITCH_1, ModificarPeriodo, NULL);
+    // SwitchActivInt(SWITCH_2, ModificarVolumen, NULL);
 
-    xTaskCreate(&MandarSenial, "senial", 512, NULL, 5, &MandarSenial_task_handle);
-    TimerStart(timer_medicion.timer);
+    xTaskCreate(&MandarSenial, "senial", 4096, NULL, 5, &MandarSenial_task_handle);
+    xTaskCreate(&Teclas, "Modificar Senial", 4096, NULL, 5, &Modificar_task_handle);
+    /*TimerStart(timer_medicion.timer);*/
     TimerStart(timer_Senial.timer);
+    printf("inicio \r\n");
 }
 /*==================[end of file]============================================*/
