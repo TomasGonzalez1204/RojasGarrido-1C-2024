@@ -34,19 +34,54 @@
 #include <hc_sr04.h>
 #include <uart_mcu.h>
 /*==================[macros and definitions]=================================*/
+/**
+ * @def CONFIG_BLINK_PERIOD_TERMOPILA
+ * @brief Periodo de adquisicion de la temperatura con la termopila
+ */
 #define CONFIG_BLINK_PERIOD_TERMOPILA 100
-#define CONFIG_BLINK_PERIOD_MEDICION 1000
+/**
+* @def CONFIG_BLINK_PERIOD_MUESTREO
+ * @brief Periodo de Muestreo de la señal
+ */
+#define CONFIG_BLINK_PERIOD_MUESTREO 1000
+/**
+ * @def ECHO GPIO_3
+ * @brief CONFIGURACION DE ECHO
+ */
 #define ECHO GPIO_3
+/**
+ * @def TRIGGER GPIO_2
+ * @brief CONFIGURACION DE TRIGGER
+ */
 #define TRIGGER GPIO_2
 /*==================[internal data definition]===============================*/
-uint8_t Dist = 0, temperatura;
+uint8_t Dist, temperatura;
 TaskHandle_t Temperatura_task_handle = NULL;
 TaskHandle_t PrenderLed_task_handle = NULL;
 TaskHandle_t Datos_task_handle = NULL;
 /*==================[internal functions declaration]=========================*/
+/**
+ * @fn uint8_t MedirTemperatura(uint8_t tempEntrada)
+ * @brief Funcion encargada de guardar la medicion de temperatura
+ * @param [in] tempEntrada
+ * @return temperatura
+ */
+uint8_t MedirTemperatura(uint8_t tempEntrada)
+{
+	Dist=HcSr04ReadDistanceInCentimeters();
+	if (Dist > 8 && Dist < 12)
+	{
+		temperatura = tempEntrada * (3300 / 50);
+	} 
+	return temperatura;
+}
+
+/** @brief Tarea encargada de prender Leds */
 void prenderLeds(void *param)
 {
-	Dist = HcSr04ReadDistanceInCentimeters();
+	while (1)
+	{
+		Dist=HcSr04ReadDistanceInCentimeters();
 	if (Dist < 8)
 	{
 		LedOn(LED_1);
@@ -59,25 +94,22 @@ void prenderLeds(void *param)
 	{
 		LedOn(LED_3);
 	}
-}
-
-uint8_t MedirTemperatura(uint8_t tempEntrada)
-{
-
-	Dist = HcSr04ReadDistanceInCentimeters();
-	if (Dist > 8 && Dist < 14)
-	{
-		temperatura = tempEntrada * (3300 / 50);
+	vTaskDelay(CONFIG_BLINK_PERIOD_MUESTREO / portTICK_PERIOD_MS);
 	}
-	return temperatura;
+	
+	
 }
 
+/** @brief Tarea encargada de tomar temperatura*/
 void tomarTemperatura(uint8_t *tempEntrada)
 {
 	while (1)
 	{
 		uint16_t arreglo[10];
 		uint8_t promedio = 0;
+		Dist=HcSr04ReadDistanceInCentimeters();
+		if (Dist<14){
+			
 		for (uint8_t i = 0; i < 10; i++)
 		{
 			arreglo[i] = MedirTemperatura(&tempEntrada);
@@ -87,9 +119,12 @@ void tomarTemperatura(uint8_t *tempEntrada)
 			arreglo[i] = MedirTemperatura(&tempEntrada);
 			promedio = (promedio + arreglo[i]) / 10;
 		}
+		} else break;
 		vTaskDelay(CONFIG_BLINK_PERIOD_TERMOPILA / portTICK_PERIOD_MS);
 	}
 }
+
+/** @brief Tarea encargada de enviar datos en serie*/
 void EnviarDatos(void *param)
 {
 	while (1)
@@ -98,11 +133,13 @@ void EnviarDatos(void *param)
 		UartSendString(UART_PC, " Cº persona a ");
 		UartSendString(UART_PC, (char *)UartItoa(Dist, 10));
 		UartSendString(UART_PC, " cm\r\n");
-		vTaskDelay(CONFIG_BLINK_PERIOD_MEDICION / portTICK_PERIOD_MS);
+		vTaskDelay(CONFIG_BLINK_PERIOD_MUESTREO / portTICK_PERIOD_MS);
 	}
 }
 
 /*==================[external functions definition]==========================*/
+
+
 void app_main(void)
 {
 	HcSr04Init(ECHO, TRIGGER);
